@@ -5,6 +5,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.conditions import IfCondition
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -26,7 +27,11 @@ def generate_launch_description():
     host = DeclareLaunchArgument(
         "host",
         default_value='localhost')
-  
+
+    publish_odom_tf = DeclareLaunchArgument(
+        "publish_odom_tf",
+        default_value='True')
+
     airsim_node = Node(
             package='airsim_ros_pkgs',
             executable='airsim_node',
@@ -38,13 +43,15 @@ def generate_launch_description():
                 'update_airsim_control_every_n_sec': 0.01,
                 'update_lidar_every_n_sec': 0.01,
                 'publish_clock': LaunchConfiguration('publish_clock'),
-                'host_ip': LaunchConfiguration('host')
+                'host_ip': LaunchConfiguration('host'),
+                'publish_odom_tf': LaunchConfiguration('publish_odom_tf')
             }])
 
     static_transforms = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('airsim_ros_pkgs'), 'launch/static_transforms.launch.py')
-        )
+        ),
+        condition=IfCondition(LaunchConfiguration('publish_odom_tf'))
     )
 
     # Create the launch description and populate
@@ -55,8 +62,9 @@ def generate_launch_description():
     ld.add_action(publish_clock)
     ld.add_action(is_vulkan)
     ld.add_action(host)
-  
-    ld.add_action(static_transforms)
+    ld.add_action(publish_odom_tf)
+
+    ld.add_action(static_transforms)  
     ld.add_action(airsim_node)
 
     return ld

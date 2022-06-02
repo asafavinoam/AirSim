@@ -340,6 +340,8 @@ private:
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
+    bool publish_odom_tf_;
+
     /// ROS params
     double vel_cmd_duration_;
 

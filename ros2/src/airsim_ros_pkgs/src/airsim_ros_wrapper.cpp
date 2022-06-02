@@ -36,6 +36,7 @@ AirsimROSWrapper::AirsimROSWrapper(const std::shared_ptr<rclcpp::Node> nh, const
     , nh_img_(nh_img)
     , nh_lidar_(nh_lidar)
     , isENU_(false)
+    , publish_odom_tf_(true)
     , publish_clock_(false)
 {
     ros_clock_.clock = rclcpp::Time(0);
@@ -102,10 +103,15 @@ void AirsimROSWrapper::initialize_ros()
     nh_->get_parameter_or("odom_frame_id", odom_frame_id_, odom_frame_id_);
     isENU_ = (odom_frame_id_ == ENU_ODOM_FRAME_ID);
     nh_->get_parameter_or("coordinate_system_enu", isENU_, isENU_);
+    nh_->get_parameter("publish_odom_tf", publish_odom_tf_);
     vel_cmd_duration_ = 0.05; // todo rosparam
     // todo enforce dynamics constraints in this node as well?
     // nh_->get_parameter("max_vert_vel_", max_vert_vel_);
     // nh_->get_parameter("max_horz_vel", max_horz_vel_)
+
+    if (!publish_odom_tf_) {
+        odom_frame_id_ = "";
+    }
 
     nh_->declare_parameter("vehicle_name", rclcpp::ParameterValue(""));
     create_ros_pubs_from_settings_json();
@@ -146,13 +152,18 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
             vehicle_ros = std::unique_ptr<CarROS>(new CarROS());
         }
 
-        vehicle_ros->odom_frame_id_ = curr_vehicle_name + "/" + odom_frame_id_;
+        vehicle_ros->odom_frame_id_ = odom_frame_id_ != "" ? curr_vehicle_name + "/" + odom_frame_id_ : curr_vehicle_name;
         vehicle_ros->vehicle_name_ = curr_vehicle_name;
 
-        append_static_vehicle_tf(vehicle_ros.get(), *vehicle_setting);
+        if (publish_odom_tf_) {
+            append_static_vehicle_tf(vehicle_ros.get(), *vehicle_setting);
+        }
 
         const std::string topic_prefix = "~/" + curr_vehicle_name;
-        vehicle_ros->odom_local_pub_ = nh_->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "/" + odom_frame_id_, 10);
+
+        if (publish_odom_tf_) {
+            vehicle_ros->odom_local_pub_ = nh_->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "/" + odom_frame_id_, 10);
+        }
 
         vehicle_ros->env_pub_ = nh_->create_publisher<airsim_interfaces::msg::Environment>(topic_prefix + "/environment", 10);
 
@@ -1025,8 +1036,10 @@ void AirsimROSWrapper::publish_vehicle_state()
         }
 
         // odom and transforms
-        vehicle_ros->odom_local_pub_->publish(vehicle_ros->curr_odom_);
-        publish_odom_tf(vehicle_ros->curr_odom_);
+        if (publish_odom_tf_) {
+            vehicle_ros->odom_local_pub_->publish(vehicle_ros->curr_odom_);
+            publish_odom_tf(vehicle_ros->curr_odom_);
+        }
 
         // ground truth GPS position from sim/HITL
         vehicle_ros->global_gps_pub_->publish(vehicle_ros->gps_sensor_msg_);
@@ -1187,7 +1200,7 @@ void AirsimROSWrapper::append_static_vehicle_tf(VehicleROS* vehicle_ros, const V
 void AirsimROSWrapper::append_static_lidar_tf(VehicleROS* vehicle_ros, const std::string& lidar_name, const msr::airlib::LidarSimpleParams& lidar_setting)
 {
     geometry_msgs::msg::TransformStamped lidar_tf_msg;
-    lidar_tf_msg.header.frame_id = vehicle_ros->vehicle_name_ + "/" + odom_frame_id_;
+    lidar_tf_msg.header.frame_id = vehicle_ros->odom_frame_id_;
     lidar_tf_msg.child_frame_id = vehicle_ros->vehicle_name_ + "/" + lidar_name;
     lidar_tf_msg.transform = get_transform_msg_from_airsim(lidar_setting.relative_pose.position, lidar_setting.relative_pose.orientation);
 
