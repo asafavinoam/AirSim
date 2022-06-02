@@ -214,9 +214,9 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
                     }
 
                     const std::string camera_topic = topic_prefix + "/" + curr_camera_name + "/" + image_type_int_to_string_map_.at(capture_setting.image_type);
-                    image_pub_vec_.push_back(image_transporter.advertise(camera_topic, 1));
+                    image_pub_vec_.push_back(image_transporter.advertise(camera_topic + "/image", 1));
                     cam_info_pub_vec_.push_back(nh_->create_publisher<sensor_msgs::msg::CameraInfo>(camera_topic + "/camera_info", 10));
-                    camera_info_msg_vec_.push_back(generate_cam_info(curr_camera_name, camera_setting, capture_setting));
+                    camera_info_msg_vec_.push_back(generate_cam_info(curr_vehicle_name + "/" + curr_camera_name, camera_setting, capture_setting));
                 }
             }
             // push back pair (vector of image captures, current vehicle name)
@@ -1156,16 +1156,28 @@ void AirsimROSWrapper::convert_tf_msg_to_enu(geometry_msgs::msg::TransformStampe
 
 geometry_msgs::msg::Transform AirsimROSWrapper::get_camera_optical_tf_from_body_tf(const geometry_msgs::msg::Transform& body_tf) const
 {
-    geometry_msgs::msg::Transform optical_tf = body_tf; //same translation
-    auto opticalQ = msr::airlib::Quaternionr(optical_tf.rotation.w, optical_tf.rotation.x, optical_tf.rotation.y, optical_tf.rotation.z);
-    if (isENU_)
-        opticalQ *= msr::airlib::Quaternionr(0.7071068, -0.7071068, 0, 0); //CamOptical in CamBodyENU is rmat[1,0,0;0,0,-1;0,1,0]==xyzw[-0.7071068,0,0,0.7071068]
-    else
-        opticalQ *= msr::airlib::Quaternionr(0.5, 0.5, 0.5, 0.5); //CamOptical in CamBodyNED is rmat[0,0,1;1,0,0;0,1,0]==xyzw[0.5,0.5,0.5,0.5]
-    optical_tf.rotation.w = opticalQ.w();
-    optical_tf.rotation.x = opticalQ.x();
-    optical_tf.rotation.y = opticalQ.y();
-    optical_tf.rotation.z = opticalQ.z();
+    geometry_msgs::msg::Transform optical_tf;
+    
+    //same translation
+    optical_tf.translation.x = 0;
+    optical_tf.translation.y = 0;
+    optical_tf.translation.z = 0;
+
+    if (isENU_) {
+        //CamOptical in CamBodyENU is rmat[1,0,0;0,0,-1;0,1,0]==xyzw[-0.7071068,0,0,0.7071068]
+        optical_tf.rotation.w = 0.7071068;
+        optical_tf.rotation.x = -0.7071068;
+        optical_tf.rotation.y = 0;
+        optical_tf.rotation.z = 0;
+    }
+    else {
+        //CamOptical in CamBodyNED is rmat[0,0,1;1,0,0;0,1,0]==xyzw[0.5,0.5,0.5,0.5]
+        optical_tf.rotation.w = 0.5;
+        optical_tf.rotation.x = 0.5;
+        optical_tf.rotation.y = 0.5;
+        optical_tf.rotation.z = 0.5;
+    }
+
     return optical_tf;
 }
 
@@ -1201,8 +1213,8 @@ void AirsimROSWrapper::append_static_lidar_tf(VehicleROS* vehicle_ros, const std
 void AirsimROSWrapper::append_static_camera_tf(VehicleROS* vehicle_ros, const std::string& camera_name, const CameraSetting& camera_setting)
 {
     geometry_msgs::msg::TransformStamped static_cam_tf_body_msg;
-    static_cam_tf_body_msg.header.frame_id = vehicle_ros->vehicle_name_ + "/" + odom_frame_id_;
-    static_cam_tf_body_msg.child_frame_id = vehicle_ros->vehicle_name_ + "/" + camera_name + "_body/static";
+    static_cam_tf_body_msg.header.frame_id = vehicle_ros->odom_frame_id_;
+    static_cam_tf_body_msg.child_frame_id = vehicle_ros->vehicle_name_ + "/" + camera_name + "_body";
     static_cam_tf_body_msg.transform = get_transform_msg_from_airsim(camera_setting.position, camera_setting.rotation);
 
     if (isENU_) {
@@ -1210,8 +1222,8 @@ void AirsimROSWrapper::append_static_camera_tf(VehicleROS* vehicle_ros, const st
     }
 
     geometry_msgs::msg::TransformStamped static_cam_tf_optical_msg = static_cam_tf_body_msg;
-    static_cam_tf_optical_msg.child_frame_id = vehicle_ros->vehicle_name_ + "/" + camera_name + "_optical/static";
-    static_cam_tf_optical_msg.child_frame_id = camera_name + "_optical/static";
+    static_cam_tf_optical_msg.header.frame_id = vehicle_ros->vehicle_name_ + "/" + camera_name + "_body";
+    static_cam_tf_optical_msg.child_frame_id = vehicle_ros->vehicle_name_ + "/" + camera_name + "_optical";
     static_cam_tf_optical_msg.transform = get_camera_optical_tf_from_body_tf(static_cam_tf_body_msg.transform);
 
     vehicle_ros->static_tf_msg_vec_.emplace_back(static_cam_tf_body_msg);
@@ -1319,10 +1331,6 @@ void AirsimROSWrapper::process_and_publish_img_response(const std::vector<ImageR
     int img_response_idx_internal = img_response_idx;
 
     for (const auto& curr_img_response : img_response_vec) {
-        // todo publishing a tf for each capture type seems stupid. but it foolproofs us against render thread's async stuff, I hope.
-        // Ideally, we should loop over cameras and then captures, and publish only one tf.
-        publish_camera_tf(curr_img_response, curr_ros_time, vehicle_name, curr_img_response.camera_name);
-
         // todo simGetCameraInfo is wrong + also it's only for image type -1.
         // msr::airlib::CameraInfo camera_info = airsim_client_.simGetCameraInfo(curr_img_response.camera_name);
 
@@ -1335,42 +1343,16 @@ void AirsimROSWrapper::process_and_publish_img_response(const std::vector<ImageR
         if (curr_img_response.pixels_as_float) {
             image_pub_vec_[img_response_idx_internal].publish(get_depth_img_msg_from_response(curr_img_response,
                                                                                               curr_ros_time,
-                                                                                              curr_img_response.camera_name + "_optical"));
+                                                                                              vehicle_name + "/" + curr_img_response.camera_name + "_optical"));
         }
         // Scene / Segmentation / SurfaceNormals / Infrared
         else {
             image_pub_vec_[img_response_idx_internal].publish(get_img_msg_from_response(curr_img_response,
                                                                                         curr_ros_time,
-                                                                                        curr_img_response.camera_name + "_optical"));
+                                                                                        vehicle_name + "/" + curr_img_response.camera_name + "_optical"));
         }
         img_response_idx_internal++;
     }
-}
-
-// publish camera transforms
-// camera poses are obtained from airsim's client API which are in (local) NED frame.
-// We first do a change of basis to camera optical frame (Z forward, X right, Y down)
-void AirsimROSWrapper::publish_camera_tf(const ImageResponse& img_response, const rclcpp::Time& ros_time, const std::string& frame_id, const std::string& child_frame_id)
-{
-    unused(ros_time);
-    geometry_msgs::msg::TransformStamped cam_tf_body_msg;
-    cam_tf_body_msg.header.stamp = rclcpp::Time(img_response.time_stamp);
-    cam_tf_body_msg.header.frame_id = frame_id;
-    cam_tf_body_msg.child_frame_id = frame_id + "/" + child_frame_id + "_body";
-    cam_tf_body_msg.transform = get_transform_msg_from_airsim(img_response.camera_position, img_response.camera_orientation);
-
-    if (isENU_) {
-        convert_tf_msg_to_enu(cam_tf_body_msg);
-    }
-
-    geometry_msgs::msg::TransformStamped cam_tf_optical_msg;
-    cam_tf_optical_msg.header.stamp = rclcpp::Time(img_response.time_stamp);
-    cam_tf_optical_msg.header.frame_id = frame_id;
-    cam_tf_optical_msg.child_frame_id = frame_id + "/" + child_frame_id + "_optical";
-    cam_tf_optical_msg.transform = get_camera_optical_tf_from_body_tf(cam_tf_body_msg.transform);
-
-    tf_broadcaster_->sendTransform(cam_tf_body_msg);
-    tf_broadcaster_->sendTransform(cam_tf_optical_msg);
 }
 
 void AirsimROSWrapper::convert_yaml_to_simple_mat(const YAML::Node& node, SimpleMatrix& m) const
