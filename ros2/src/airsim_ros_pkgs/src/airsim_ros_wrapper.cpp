@@ -875,7 +875,7 @@ geometry_msgs::msg::Transform AirsimROSWrapper::get_transform_msg_from_airsim(co
     transform.translation.y = position.y();
     transform.translation.z = position.z();
     tf2::Quaternion quat;
-    quat.setRPY(rotation.roll, rotation.pitch, rotation.yaw);
+    quat.setRPY(math_common::deg2rad(rotation.roll), math_common::deg2rad(rotation.pitch), math_common::deg2rad(rotation.yaw));
     transform.rotation.x = quat.x();
     transform.rotation.y = quat.y();
     transform.rotation.z = quat.z();
