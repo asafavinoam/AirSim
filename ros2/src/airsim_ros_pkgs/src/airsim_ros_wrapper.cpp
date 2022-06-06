@@ -152,21 +152,17 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
             vehicle_ros = std::unique_ptr<CarROS>(new CarROS());
         }
 
-        vehicle_ros->odom_frame_id_ = odom_frame_id_ != "" ? curr_vehicle_name + "/" + odom_frame_id_ : curr_vehicle_name;
+        const std::string topic_prefix = "~/" + curr_vehicle_name;
+
         vehicle_ros->vehicle_name_ = curr_vehicle_name;
+        vehicle_ros->odom_frame_id_ = publish_odom_tf_ ? curr_vehicle_name + "/" + odom_frame_id_ : curr_vehicle_name;
 
         if (publish_odom_tf_) {
             append_static_vehicle_tf(vehicle_ros.get(), *vehicle_setting);
-        }
-
-        const std::string topic_prefix = "~/" + curr_vehicle_name;
-
-        if (publish_odom_tf_) {
             vehicle_ros->odom_local_pub_ = nh_->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "/" + odom_frame_id_, 10);
         }
 
         vehicle_ros->env_pub_ = nh_->create_publisher<airsim_interfaces::msg::Environment>(topic_prefix + "/environment", 10);
-
         vehicle_ros->global_gps_pub_ = nh_->create_publisher<sensor_msgs::msg::NavSatFix>(topic_prefix + "/global_gps", 10);
 
         if (airsim_mode_ == AIRSIM_MODE::DRONE) {
