@@ -228,7 +228,6 @@ private:
     bool reset_srv_cb(const std::shared_ptr<airsim_interfaces::srv::Reset::Request> request, const std::shared_ptr<airsim_interfaces::srv::Reset::Response> response);
 
     /// ROS tf broadcasters
-    void publish_camera_tf(const ImageResponse& img_response, const rclcpp::Time& ros_time, const std::string& frame_id, const std::string& child_frame_id);
     void publish_odom_tf(const nav_msgs::msg::Odometry& odom_msg);
 
     /// camera helper methods
@@ -339,6 +338,8 @@ private:
     bool isENU_;
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
+    bool publish_odom_tf_;
 
     /// ROS params
     double vel_cmd_duration_;
