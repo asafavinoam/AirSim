@@ -23,6 +23,10 @@ def generate_launch_description():
     is_vulkan = DeclareLaunchArgument(
         "is_vulkan",
         default_value='True')
+    
+    is_enu = DeclareLaunchArgument(
+        "is_enu",
+        default_value='False')
 
     host = DeclareLaunchArgument(
         "host",
@@ -45,6 +49,7 @@ def generate_launch_description():
                 'publish_clock': LaunchConfiguration('publish_clock'),
                 'host_ip': LaunchConfiguration('host'),
                 'publish_odom_tf': LaunchConfiguration('publish_odom_tf'),
+                'coordinate_system_enu': LaunchConfiguration('is_enu'),
             }])
 
     static_transforms = IncludeLaunchDescription(
@@ -61,6 +66,7 @@ def generate_launch_description():
     ld.add_action(output)
     ld.add_action(publish_clock)
     ld.add_action(is_vulkan)
+    ld.add_action(is_enu)
     ld.add_action(host)
     ld.add_action(publish_odom_tf)
 
