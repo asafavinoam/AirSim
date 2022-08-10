@@ -786,14 +786,14 @@ sensor_msgs::msg::Imu AirsimROSWrapper::get_imu_msg_from_airsim(const msr::airli
     // imu_msg.header.frame_id = "/airsim/odom_local_ned";// todo multiple drones
     imu_msg.header.stamp = rclcpp::Time(imu_data.time_stamp);
     imu_msg.orientation.x = imu_data.orientation.x();
-    imu_msg.orientation.y = -imu_data.orientation.y();
-    imu_msg.orientation.z = -imu_data.orientation.z();
+    imu_msg.orientation.y = imu_data.orientation.y();
+    imu_msg.orientation.z = imu_data.orientation.z();
     imu_msg.orientation.w = imu_data.orientation.w();
 
     // todo radians per second
     imu_msg.angular_velocity.x = imu_data.angular_velocity.x();
-    imu_msg.angular_velocity.y = -imu_data.angular_velocity.y();
-    imu_msg.angular_velocity.z = -imu_data.angular_velocity.z();
+    imu_msg.angular_velocity.y = imu_data.angular_velocity.y();
+    imu_msg.angular_velocity.z = imu_data.angular_velocity.z();
 
     // meters/s2^m
     imu_msg.linear_acceleration.x = imu_data.linear_acceleration.x();
