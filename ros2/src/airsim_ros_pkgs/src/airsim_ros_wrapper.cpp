@@ -163,6 +163,8 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
 
         vehicle_ros->global_gps_pub_ = nh_->create_publisher<sensor_msgs::msg::NavSatFix>(topic_prefix + "/global_gps", 10);
 
+        vehicle_ros->global_position_pub_ = nh_->create_publisher<geometry_msgs::msg::PoseStamped>(topic_prefix + "/global_position", 10);
+
         if (airsim_mode_ == AIRSIM_MODE::DRONE) {
             auto drone = static_cast<MultiRotorROS*>(vehicle_ros.get());
 
@@ -647,6 +649,16 @@ nav_msgs::msg::Odometry AirsimROSWrapper::get_odom_msg_from_multirotor_state(con
     return get_odom_msg_from_kinematic_state(drone_state.kinematics_estimated);
 }
 
+geometry_msgs::msg::PoseStamped AirsimROSWrapper::get_position_msg_from_odom(const nav_msgs::msg::Odometry& odom_msg) const
+{
+    geometry_msgs::msg::PoseStamped pose_msg;
+
+    pose_msg.header = odom_msg.header;
+    pose_msg.pose = odom_msg.pose.pose;
+
+    return pose_msg;
+}
+
 // https://docs.ros.org/jade/api/sensor_msgs/html/point__cloud__conversion_8h_source.html#l00066
 // look at UnrealLidarSensor.cpp UnrealLidarSensor::getPointCloud() for math
 // read this carefully https://docs.ros.org/kinetic/api/sensor_msgs/html/msg/PointCloud2.html
@@ -1013,6 +1025,8 @@ rclcpp::Time AirsimROSWrapper::update_state()
         vehicle_ros->curr_odom_.header.frame_id = vehicle_ros->vehicle_name_;
         vehicle_ros->curr_odom_.child_frame_id = vehicle_ros->odom_frame_id_;
         vehicle_ros->curr_odom_.header.stamp = vehicle_time;
+
+        vehicle_ros->curr_position_ = get_position_msg_from_odom(vehicle_ros->curr_odom_);
     }
 
     return curr_ros_time;
@@ -1040,6 +1054,9 @@ void AirsimROSWrapper::publish_vehicle_state()
 
         // ground truth GPS position from sim/HITL
         vehicle_ros->global_gps_pub_->publish(vehicle_ros->gps_sensor_msg_);
+
+        // ground truth metric position from sim/HITL
+        vehicle_ros->global_position_pub_->publish(vehicle_ros->curr_position_);
 
         for (auto& sensor_publisher : vehicle_ros->barometer_pubs_) {
             auto baro_data = airsim_client_->getBarometerData(sensor_publisher.sensor_name, vehicle_ros->vehicle_name_);

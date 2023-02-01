@@ -139,6 +139,7 @@ private:
         /// All things ROS
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_local_pub_;
         rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr global_gps_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr global_position_pub_;
         rclcpp::Publisher<airsim_interfaces::msg::Environment>::SharedPtr env_pub_;
         airsim_interfaces::msg::Environment env_msg_;
 
@@ -153,6 +154,8 @@ private:
 
         nav_msgs::msg::Odometry curr_odom_;
         sensor_msgs::msg::NavSatFix gps_sensor_msg_;
+        geometry_msgs::msg::PoseStamped curr_position_;
+        geometry_msgs::msg::PoseStamped initial_position_;
 
         std::vector<geometry_msgs::msg::TransformStamped> static_tf_msg_vec_;
 
@@ -256,6 +259,7 @@ private:
     nav_msgs::msg::Odometry get_odom_msg_from_kinematic_state(const msr::airlib::Kinematics::State& kinematics_estimated) const;
     nav_msgs::msg::Odometry get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) const;
     nav_msgs::msg::Odometry get_odom_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
+    geometry_msgs::msg::PoseStamped get_position_msg_from_odom(const nav_msgs::msg::Odometry& odom_msg) const;
     airsim_interfaces::msg::CarState get_roscarstate_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
     msr::airlib::Pose get_airlib_pose(const float& x, const float& y, const float& z, const msr::airlib::Quaternionr& airlib_quat) const;
     airsim_interfaces::msg::GPSYaw get_gps_msg_from_airsim_geo_point(const msr::airlib::GeoPoint& geo_point) const;
