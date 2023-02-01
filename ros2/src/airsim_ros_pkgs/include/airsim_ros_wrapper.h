@@ -33,6 +33,7 @@ STRICT_MODE_OFF //todo what does this do?
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <geographic_msgs/msg/geo_point.hpp>
 #include <image_transport/image_transport.hpp>
 #include <iostream>
 #include <math.h>
@@ -263,7 +264,7 @@ private:
     geometry_msgs::msg::PoseStamped get_vehicle_curr_position_msg(VehicleROS* vehicle_ros) const;
     airsim_interfaces::msg::CarState get_roscarstate_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
     msr::airlib::Pose get_airlib_pose(const float& x, const float& y, const float& z, const msr::airlib::Quaternionr& airlib_quat) const;
-    airsim_interfaces::msg::GPSYaw get_gps_msg_from_airsim_geo_point(const msr::airlib::GeoPoint& geo_point) const;
+    geographic_msgs::msg::GeoPoint get_gps_msg_from_airsim_geo_point(const msr::airlib::GeoPoint& geo_point) const;
     sensor_msgs::msg::NavSatFix get_gps_sensor_msg_from_airsim_geo_point(const msr::airlib::GeoPoint& geo_point) const;
     sensor_msgs::msg::Imu get_imu_msg_from_airsim(const msr::airlib::ImuBase::Output& imu_data) const;
     airsim_interfaces::msg::Altimeter get_altimeter_msg_from_airsim(const msr::airlib::BarometerBase::Output& alt_data) const;
@@ -302,9 +303,9 @@ private:
     AIRSIM_MODE airsim_mode_ = AIRSIM_MODE::DRONE;
 
     rclcpp::Service<airsim_interfaces::srv::Reset>::SharedPtr reset_srvr_;
-    rclcpp::Publisher<airsim_interfaces::msg::GPSYaw>::SharedPtr origin_geo_point_pub_; // home geo coord of drones
+    rclcpp::Publisher<geographic_msgs::msg::GeoPoint>::SharedPtr origin_geo_point_pub_; // home geo coord of drones
     msr::airlib::GeoPoint origin_geo_point_; // gps coord of unreal origin
-    airsim_interfaces::msg::GPSYaw origin_geo_point_msg_; // todo duplicate
+    geographic_msgs::msg::GeoPoint origin_geo_point_msg_; // todo duplicate
 
     AirSimSettingsParser airsim_settings_parser_;
     std::unordered_map<std::string, std::unique_ptr<VehicleROS>> vehicle_name_ptr_map_;

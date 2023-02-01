@@ -77,7 +77,7 @@ void PIDPositionController::initialize_ros()
 
     // ROS subscribers
     airsim_odom_sub_ = nh_->create_subscription<nav_msgs::msg::Odometry>("/airsim_node/" + vehicle_name + "/odom_local_ned", 50, std::bind(&PIDPositionController::airsim_odom_cb, this, _1));
-    home_geopoint_sub_ = nh_->create_subscription<airsim_interfaces::msg::GPSYaw>("/airsim_node/home_geo_point", 50, std::bind(&PIDPositionController::home_geopoint_cb, this, _1));
+    home_geopoint_sub_ = nh_->create_subscription<geographic_msgs::msg::GeoPoint>("/airsim_node/home_geo_point", 50, std::bind(&PIDPositionController::home_geopoint_cb, this, _1));
     // todo publish this under global nodehandle / "airsim node" and hide it from user
     local_position_goal_srvr_ = nh_->create_service<airsim_interfaces::srv::SetLocalPosition>("/airsim_node/local_position_goal", std::bind(&PIDPositionController::local_position_goal_srv_cb, this, _1, _2));
     local_position_goal_override_srvr_ = nh_->create_service<airsim_interfaces::srv::SetLocalPosition>("/airsim_node/local_position_goal/override", std::bind(&PIDPositionController::local_position_goal_srv_override_cb, this, _1, _2));
@@ -166,7 +166,7 @@ bool PIDPositionController::local_position_goal_srv_override_cb(const std::share
     return true;
 }
 
-void PIDPositionController::home_geopoint_cb(const airsim_interfaces::msg::GPSYaw::SharedPtr gps_msg)
+void PIDPositionController::home_geopoint_cb(const geographic_msgs::msg::GeoPoint::SharedPtr gps_msg)
 {
     if (has_home_geo_)
         return;
