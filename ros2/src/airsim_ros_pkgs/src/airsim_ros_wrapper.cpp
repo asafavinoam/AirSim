@@ -655,7 +655,7 @@ geometry_msgs::msg::PoseStamped AirsimROSWrapper::get_vehicle_curr_position_msg(
 {
     geometry_msgs::msg::PoseStamped pose_msg;
     pose_msg.pose.position.x = vehicle_ros->initial_position_.position.x + vehicle_ros->curr_odom_.pose.pose.position.x;
-    pose_msg.pose.position.y = vehicle_ros->initial_position_.position.y + vehicle_ros->curr_odom_.pose.pose.position.y;
+    pose_msg.pose.position.y = -(vehicle_ros->initial_position_.position.y + vehicle_ros->curr_odom_.pose.pose.position.y);
     pose_msg.pose.position.z = vehicle_ros->initial_position_.position.z + vehicle_ros->curr_odom_.pose.pose.position.z;
     return pose_msg;
 }
