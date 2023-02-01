@@ -154,6 +154,8 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
         vehicle_ros->odom_frame_id_ = publish_odom_tf_ ? curr_vehicle_name + "/" + odom_frame_id_ : curr_vehicle_name;
         vehicle_ros->vehicle_name_ = curr_vehicle_name;
 
+        vehicle_ros->initial_position_ = get_initial_pose_from_settings(vehicle_ros.get(), *vehicle_setting);
+
         if (publish_odom_tf_) {
             append_static_vehicle_tf(vehicle_ros.get(), *vehicle_setting);
             vehicle_ros->odom_local_pub_ = nh_->create_publisher<nav_msgs::msg::Odometry>(topic_prefix + "/" + odom_frame_id_, 10);
@@ -649,12 +651,13 @@ nav_msgs::msg::Odometry AirsimROSWrapper::get_odom_msg_from_multirotor_state(con
     return get_odom_msg_from_kinematic_state(drone_state.kinematics_estimated);
 }
 
-geometry_msgs::msg::PoseStamped AirsimROSWrapper::get_position_msg_from_odom(const nav_msgs::msg::Odometry& odom_msg) const
+geometry_msgs::msg::PoseStamped AirsimROSWrapper::get_vehicle_curr_position_msg(VehicleROS* vehicle_ros) const
 {
+    // vehicle_ros->curr_odom_;
     geometry_msgs::msg::PoseStamped pose_msg;
 
-    pose_msg.header = odom_msg.header;
-    pose_msg.pose = odom_msg.pose.pose;
+    // pose_msg.header = odom_msg.header;
+    pose_msg.pose = vehicle_ros->initial_position_;
 
     return pose_msg;
 }
@@ -1026,7 +1029,8 @@ rclcpp::Time AirsimROSWrapper::update_state()
         vehicle_ros->curr_odom_.child_frame_id = vehicle_ros->odom_frame_id_;
         vehicle_ros->curr_odom_.header.stamp = vehicle_time;
 
-        vehicle_ros->curr_position_ = get_position_msg_from_odom(vehicle_ros->curr_odom_);
+        vehicle_ros->curr_position_ = get_vehicle_curr_position_msg(vehicle_ros.get());
+        vehicle_ros->curr_position_.header = vehicle_ros->curr_odom_.header;
     }
 
     return curr_ros_time;
@@ -1219,6 +1223,19 @@ void AirsimROSWrapper::append_static_vehicle_tf(VehicleROS* vehicle_ros, const V
     }
 
     vehicle_ros->static_tf_msg_vec_.emplace_back(vehicle_tf_msg);
+}
+
+geometry_msgs::msg::Pose AirsimROSWrapper::get_initial_pose_from_settings(VehicleROS* vehicle_ros, const VehicleSetting& vehicle_setting) const
+{
+    geometry_msgs::msg::Pose initial_pose;
+    initial_pose.position.x = position.x();
+    initial_pose.position.y = position.y();
+    initial_pose.position.z = position.z();
+    initial_pose.orientation.x = quaternion.x();
+    initial_pose.orientation.y = quaternion.y();
+    initial_pose.orientation.z = quaternion.z();
+    initial_pose.orientation.w = quaternion.w();
+    return initial_pose;
 }
 
 void AirsimROSWrapper::append_static_lidar_tf(VehicleROS* vehicle_ros, const std::string& lidar_name, const msr::airlib::LidarSimpleParams& lidar_setting)

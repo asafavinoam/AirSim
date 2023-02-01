@@ -155,7 +155,7 @@ private:
         nav_msgs::msg::Odometry curr_odom_;
         sensor_msgs::msg::NavSatFix gps_sensor_msg_;
         geometry_msgs::msg::PoseStamped curr_position_;
-        geometry_msgs::msg::PoseStamped initial_position_;
+        geometry_msgs::msg::Pose initial_position_;
 
         std::vector<geometry_msgs::msg::TransformStamped> static_tf_msg_vec_;
 
@@ -250,6 +250,7 @@ private:
     void set_nans_to_zeros_in_pose(VehicleSetting& vehicle_setting) const;
     void set_nans_to_zeros_in_pose(const VehicleSetting& vehicle_setting, CameraSetting& camera_setting) const;
     void set_nans_to_zeros_in_pose(const VehicleSetting& vehicle_setting, LidarSetting& lidar_setting) const;
+    geometry_msgs::msg::Pose get_initial_pose_from_settings(VehicleROS* vehicle_ros, const VehicleSetting& vehicle_setting) const;
     geometry_msgs::msg::Transform get_camera_optical_tf_from_body_tf(const geometry_msgs::msg::Transform& body_tf) const;
 
     /// utils. todo parse into an Airlib<->ROS conversion class
@@ -259,7 +260,7 @@ private:
     nav_msgs::msg::Odometry get_odom_msg_from_kinematic_state(const msr::airlib::Kinematics::State& kinematics_estimated) const;
     nav_msgs::msg::Odometry get_odom_msg_from_multirotor_state(const msr::airlib::MultirotorState& drone_state) const;
     nav_msgs::msg::Odometry get_odom_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
-    geometry_msgs::msg::PoseStamped get_position_msg_from_odom(const nav_msgs::msg::Odometry& odom_msg) const;
+    geometry_msgs::msg::PoseStamped get_vehicle_curr_position_msg(VehicleROS* vehicle_ros) const;
     airsim_interfaces::msg::CarState get_roscarstate_msg_from_car_state(const msr::airlib::CarApiBase::CarState& car_state) const;
     msr::airlib::Pose get_airlib_pose(const float& x, const float& y, const float& z, const msr::airlib::Quaternionr& airlib_quat) const;
     airsim_interfaces::msg::GPSYaw get_gps_msg_from_airsim_geo_point(const msr::airlib::GeoPoint& geo_point) const;
