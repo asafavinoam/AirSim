@@ -250,7 +250,7 @@ private:
     void set_nans_to_zeros_in_pose(VehicleSetting& vehicle_setting) const;
     void set_nans_to_zeros_in_pose(const VehicleSetting& vehicle_setting, CameraSetting& camera_setting) const;
     void set_nans_to_zeros_in_pose(const VehicleSetting& vehicle_setting, LidarSetting& lidar_setting) const;
-    geometry_msgs::msg::Pose get_initial_pose_from_settings(VehicleROS* vehicle_ros, const VehicleSetting& vehicle_setting) const;
+    geometry_msgs::msg::Pose get_initial_pose_from_settings(const VehicleSetting& vehicle_setting) const;
     geometry_msgs::msg::Transform get_camera_optical_tf_from_body_tf(const geometry_msgs::msg::Transform& body_tf) const;
 
     /// utils. todo parse into an Airlib<->ROS conversion class
