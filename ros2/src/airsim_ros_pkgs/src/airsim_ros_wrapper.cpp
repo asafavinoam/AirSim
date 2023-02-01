@@ -653,12 +653,10 @@ nav_msgs::msg::Odometry AirsimROSWrapper::get_odom_msg_from_multirotor_state(con
 
 geometry_msgs::msg::PoseStamped AirsimROSWrapper::get_vehicle_curr_position_msg(VehicleROS* vehicle_ros) const
 {
-    // vehicle_ros->curr_odom_;
     geometry_msgs::msg::PoseStamped pose_msg;
-
-    // pose_msg.header = odom_msg.header;
-    pose_msg.pose = vehicle_ros->initial_position_;
-
+    pose_msg.pose.position.x = vehicle_ros->initial_position_.x + vehicle_ros->curr_odom_.pose.pose.position.x;
+    pose_msg.pose.position.y = vehicle_ros->initial_position_.y + vehicle_ros->curr_odom_.pose.pose.position.y;
+    pose_msg.pose.position.z = vehicle_ros->initial_position_.z + vehicle_ros->curr_odom_.pose.pose.position.z;
     return pose_msg;
 }
 
@@ -1227,14 +1225,20 @@ void AirsimROSWrapper::append_static_vehicle_tf(VehicleROS* vehicle_ros, const V
 
 geometry_msgs::msg::Pose AirsimROSWrapper::get_initial_pose_from_settings(const VehicleSetting& vehicle_setting) const
 {
+    tf2::Quaternion quat;
+    quat.setRPY(math_common::deg2rad(vehicle_setting.rotation.roll), 
+                math_common::deg2rad(vehicle_setting.rotation.pitch), 
+                math_common::deg2rad(vehicle_setting.rotation.yaw));
+    quat.normalize();
+
     geometry_msgs::msg::Pose initial_pose;
     initial_pose.position.x = vehicle_setting.position.x();
     initial_pose.position.y = vehicle_setting.position.y();
     initial_pose.position.z = vehicle_setting.position.z();
-    initial_pose.orientation.x = vehicle_setting.rotation.x();
-    initial_pose.orientation.y = vehicle_setting.rotation.y();
-    initial_pose.orientation.z = vehicle_setting.rotation.z();
-    initial_pose.orientation.w = vehicle_setting.rotation.w();
+    initial_pose.orientation.x = quat.x();
+    initial_pose.orientation.y = quat.y();
+    initial_pose.orientation.z = quat.z();
+    initial_pose.orientation.w = quat.w();
     return initial_pose;
 }
 
