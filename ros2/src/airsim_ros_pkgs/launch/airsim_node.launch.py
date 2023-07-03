@@ -35,6 +35,14 @@ def generate_launch_description():
     publish_odom_tf = DeclareLaunchArgument(
         "publish_odom_tf",
         default_value='True')
+
+    publish_gps_tf = DeclareLaunchArgument(
+        "publish_gps_tf",
+        default_value='False')
+
+    publish_imu_tf = DeclareLaunchArgument(
+        "publish_imu_tf",
+        default_value='False')
   
     airsim_node = Node(
             package='airsim_ros_pkgs',
@@ -51,6 +59,22 @@ def generate_launch_description():
                 'publish_odom_tf': LaunchConfiguration('publish_odom_tf'),
                 'coordinate_system_enu': LaunchConfiguration('is_enu'),
             }])
+
+    gps_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='GpsTransformAirSim',
+        condition=IfCondition(LaunchConfiguration('publish_gps_tf')),
+        arguments=['0', '0', '0', '0', '0', '0', 'Probot', 'Probot/Gps']
+    )
+
+    imu_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='ImuTransformAirSim',
+        condition=IfCondition(LaunchConfiguration('publish_imu_tf')),
+        arguments=['0', '0', '0', '0', '0', '0', 'Probot', 'Probot/Imu']
+    )
 
     static_transforms = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -69,8 +93,12 @@ def generate_launch_description():
     ld.add_action(is_enu)
     ld.add_action(host)
     ld.add_action(publish_odom_tf)
+    ld.add_action(publish_gps_tf)
+    ld.add_action(publish_imu_tf)
 
     ld.add_action(static_transforms)  
     ld.add_action(airsim_node)
+    ld.add_action(gps_tf)
+    ld.add_action(imu_tf)
 
     return ld
